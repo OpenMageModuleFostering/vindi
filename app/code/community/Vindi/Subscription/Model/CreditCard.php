@@ -129,13 +129,10 @@ class Vindi_Subscription_Model_CreditCard extends Mage_Payment_Model_Method_Cc
 
         $customer = Mage::getModel('customer/customer');
 
-        $customerId      = $this->createCustomer($order, $customer);
-        $customerVindiId = $customer->getVindiUserCode();
+        $customerId = $this->createCustomer($order, $customer);
 
         if (! $payment->getAdditionalInformation('use_saved_cc')) {
             $this->createPaymentProfile($customerId);
-        } else {
-            $this->assignDataFromPreviousPaymentProfile($customerVindiId);
         }
 
         if ($this->isSingleOrder($order)) {
@@ -185,22 +182,6 @@ class Vindi_Subscription_Model_CreditCard extends Mage_Payment_Model_Method_Cc
     }
 
     /**
-     * @param int $customerVindiId
-     */
-    protected function assignDataFromPreviousPaymentProfile($customerVindiId)
-    {
-        $api     = Mage::helper('vindi_subscription/api');
-        $savedCc = $api->getCustomerPaymentProfile($customerVindiId);
-        $info    = $this->getInfoInstance();
-
-        $info->setCcType($savedCc['payment_company']['name'])
-             ->setCcOwner($savedCc['holder_name'])
-             ->setCcLast4($savedCc['card_number_last_four'])
-             ->setCcNumber($savedCc['card_number_last_four'])
-             ->setAdditionalInformation('use_saved_cc', true);
-    }
-
-    /**
      * Check whether payment method can be used
      *
      * @param Mage_Sales_Model_Quote|null $quote
@@ -238,7 +219,7 @@ class Vindi_Subscription_Model_CreditCard extends Mage_Payment_Model_Method_Cc
             $minInstallmentsValue = Mage::getStoreConfig('payment/vindi_creditcard/min_installment_value');
             $installmentValue = ceil($quote->getGrandTotal() / $installments * 100) / 100;
 
-            if (($installmentValue < $minInstallmentsValue) && ($installments > 1)) {
+            if (($installmentValue < $minInstallmentsValue) || ($installments > $maxInstallmentsNumber)) {
                 return $this->error('O número de parcelas selecionado é inválido.');
             }
         }
